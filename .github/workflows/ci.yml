@@ -1,8 +1,10 @@
 
 # This GitHub Actions CI workflow automatically checks
 # my Module 5 Part 3 project when I push code to GitHub.
-# It checks the Docker Compose file, builds the Docker
-# images, and tests whether the services start correctly.
+# It checks the Docker Compose configuration, builds
+# the Docker images, starts the containers, and tests
+# the frontend, banking API, and transactions API.
+# It also helps find errors before the project is submitted.
 
 name: Module 5 Part 3 CI
 
@@ -10,6 +12,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -19,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -37,18 +41,38 @@ jobs:
       - name: Test frontend through NGINX
         run: |
           for i in {1..20}; do
-            if curl --fail http://localhost/; then
+            if curl --fail --silent --show-error http://localhost/; then
+              echo "Frontend is working"
               exit 0
             fi
             sleep 3
           done
+          echo "Frontend test failed"
           exit 1
 
       - name: Test banking API
-        run: curl --fail http://localhost/api/login
+        run: |
+          for i in {1..20}; do
+            if curl --fail --silent --show-error http://localhost/api/login; then
+              echo "Banking API is working"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Banking API test failed"
+          exit 1
 
       - name: Test transactions API
-        run: curl --fail http://localhost/api/transactions
+        run: |
+          for i in {1..20}; do
+            if curl --fail --silent --show-error http://localhost/api/transactions; then
+              echo "Transactions API is working"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Transactions API test failed"
+          exit 1
 
       - name: Show logs if something fails
         if: failure()
