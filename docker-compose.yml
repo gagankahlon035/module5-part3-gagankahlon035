@@ -1,0 +1,60 @@
+
+services:
+
+  # MongoDB Database
+  mongo:
+    image: mongo:6
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+
+  # Python Flask Banking Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/bank_app
+      - SECRET_KEY=supersecretkey
+    expose:
+      - "5000"
+    depends_on:
+      - mongo
+
+  # JavaScript Transactions Microservice
+  transactions:
+    build:
+      context: ./transactions
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - PORT=3000
+    expose:
+      - "3000"
+    depends_on:
+      - mongo
+
+  # Student Portfolio Frontend
+  studentportfolio:
+    build:
+      context: ./studentportfolio
+    expose:
+      - "80"
+    depends_on:
+      - backend
+      - transactions
+
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - studentportfolio
+      - transactions
+
+# MongoDB Persistent Storage
+volumes:
+  mongo_data:

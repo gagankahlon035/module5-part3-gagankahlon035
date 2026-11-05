@@ -1,0 +1,59 @@
+
+# This GitHub Actions CI workflow automatically checks
+# my Module 5 Part 3 project when I push code to GitHub.
+# It checks the Docker Compose file, builds the Docker
+# images, and tests whether the services start correctly.
+
+name: Module 5 Part 3 CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Docker Compose configuration
+        run: docker compose config -q
+
+      - name: Build Docker images
+        run: docker compose build
+
+      - name: Start Docker containers
+        run: docker compose up -d
+
+      - name: Check running containers
+        run: docker compose ps
+
+      - name: Test frontend through NGINX
+        run: |
+          for i in {1..20}; do
+            if curl --fail http://localhost/; then
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
+
+      - name: Test banking API
+        run: curl --fail http://localhost/api/login
+
+      - name: Test transactions API
+        run: curl --fail http://localhost/api/transactions
+
+      - name: Show logs if something fails
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
